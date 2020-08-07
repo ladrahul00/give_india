@@ -6,16 +6,17 @@ import {Request, Response} from "express";
 import {Routes} from "./routes";
 import {User} from "./entity/user";
 import { Account, AccountType } from "./entity/account";
+import * as swaggerUi from "swagger-ui-express";
+import { swaggerJson } from "./swagger";
 
 // create express app
 const app = express();
 app.use(bodyParser.json());
 
-// setup express app here
-// ...
-
 // start express server
 const server = app.listen(3000);
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerJson));
 
 // register express routes from defined application routes
 Routes.forEach(route => {
@@ -30,38 +31,46 @@ Routes.forEach(route => {
     });
 });
 
+
+
 createConnection().then(async connection => {
+    const userCounts = await connection.manager.count(User);
+    // Initializing users and accounts for test
+    if (userCounts === 0) {
+        // insert new users for test
+        const user1 = await connection.manager.save(connection.manager.create(User, {
+            firstName: "Timber",
+            lastName: "Saw",
+            age: 27
+        }));
+        const user2 = await connection.manager.save(connection.manager.create(User, {
+            firstName: "Phantom",
+            lastName: "Assassin",
+            age: 24
+        }));
+        const user3 = await connection.manager.save(connection.manager.create(User, {
+            firstName: "Ninja",
+            lastName: "Warrior",
+            age: 24
+        }));
+        const allUsers = [user1, user2, user3];
+        const allAccountTypes = [AccountType.BASIC_SAVINGS, AccountType.CURRENT, AccountType.SAVINGS];
 
-    // insert new users for test
-    // const user1 = await connection.manager.save(connection.manager.create(User, {
-    //     firstName: "Timber",
-    //     lastName: "Saw",
-    //     age: 27
-    // }));
-    // const user2 = await connection.manager.save(connection.manager.create(User, {
-    //     firstName: "Phantom",
-    //     lastName: "Assassin",
-    //     age: 24
-    // }));
-    // await connection.manager.save(connection.manager.create(Account, {
-    //     user: user1,
-    //     balanceAmount: 100,
-    //     accountType: AccountType.SAVINGS
-    // }));
-    // await connection.manager.save(connection.manager.create(Account, {
-    //     user: user1,
-    //     balanceAmount: 500,
-    //     accountType: AccountType.CURRENT
-    // }));
-    // await connection.manager.save(connection.manager.create(Account, {
-    //     user: user2,
-    //     balanceAmount: 50000,
-    //     accountType: AccountType.BASIC_SAVINGS
-    // }));
-
-
-    console.log("Express server has started on port 3000. Open http://localhost:3000/users to see results");
-
+        for (const user of allUsers) {
+            for (let index = 0; index < 4; index++) {
+                const randomAccountTypeIndex = Math.floor(Math.random() * 3);
+                const randomAccountType = allAccountTypes[randomAccountTypeIndex];
+                const balanceThreshold = randomAccountType === AccountType.BASIC_SAVINGS ? 50000 : 100000;
+                const randomBalance = Math.floor(Math.random() * balanceThreshold);
+                await connection.manager.save(connection.manager.create(Account, {
+                    user: user,
+                    balanceAmount: randomBalance,
+                    accountType: randomAccountType
+                }));
+            }
+        }
+    }
+    console.log("Express server has started on port 3000. Open http://localhost:3000/api-docs/#/ to see swagger documentation");
 }).catch(error => {
     console.log(error)
     server.close();

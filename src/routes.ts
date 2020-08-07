@@ -43,9 +43,8 @@ export const Routes = [{
     route: "/accounts/:id",
     controller: AccountController,
     action: "remove"
-},
-{
-    method: "get",
+}, {
+    method: "post",
     route: "/transaction",
     controller: TransactionController,
     action: "performTransaction"
